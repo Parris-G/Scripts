@@ -1,0 +1,122 @@
+ 
+#-------------------------   initialise
+
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+
+#-------------------------   simulation box size
+
+variable        xx equal 500
+variable        yy equal 500
+variable        zz equal 200
+variable        spotDiameter equal 150
+variable        beamDepth equal 20
+variable        sampleCubeXsize equal 40
+variable        sampleCubeYsize equal 40
+variable        sampleCubeZsize equal 40
+
+#-------------------------   variable calculations
+
+variable        boxHeight equal ${zz}*5
+variable        beamX equal ${xx}/2
+variable        beamY equal ${yy}/2
+variable        beamBottom equal ${zz}-${beamDepth}
+variable        beamLowZ equal ${beamBottom}-50
+
+variable        beamEdgeXleft equal ${beamX}-(${spotDiameter}/2)-50
+variable        beamEdgeXright equal ${beamX}+(${spotDiameter}/2)+50
+variable        beamEdgeYback equal ${beamY}-(${spotDiameter}/2)-50
+variable        beamEdgeYfront equal ${beamY}+(${spotDiameter}/2)+50
+
+variable        sampleMiddleXlo equal ${beamX}-(${sampleCubeXsize}/2)
+variable        sampleMiddleXhi equal ${beamX}+(${sampleCubeXsize}/2)
+variable        sampleMiddleYlo equal ${beamY}-(${sampleCubeYsize}/2)
+variable        sampleMiddleYhi equal ${beamY}+(${sampleCubeYsize}/2)
+variable        belowBeamZlo equal ${beamLowZ}-${sampleCubeZsize}
+
+variable        sampleXlo equal ${beamEdgeXleft}-${sampleCubeXsize}
+variable        sampleXhi equal ${beamEdgeXright}+${sampleCubeXsize}
+variable        sampleYlo equal ${beamEdgeYback}-${sampleCubeYsize}
+variable        sampleYhi equal ${beamEdgeYfront}+${sampleCubeYsize}
+variable        sampleZlow equal ${zz}-${sampleCubeYsize}
+
+#-------------------------   create atoms
+
+region          simBox block 0 ${xx} 0 ${yy} 0 ${boxHeight} units box
+create_box      1 simBox
+read_data       substrate_500grains.atoms add append
+
+#-------------------------   regions
+
+region          atoms block 0 ${xx} 0 ${yy} 0 ${zz} units box
+region          beam cylinder z ${beamX} ${beamY} ${spotDiameter} ${beamBottom} ${zz} units box
+region          belowBeam block ${sampleMiddleXlo} ${sampleMiddleXhi} ${sampleMiddleYlo} ${sampleMiddleYhi} ${belowBeamZlo} ${beamLowZ} units box
+region          leftBeam block ${sampleXlo} ${beamEdgeXleft} ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          rightBeam block ${beamEdgeXright} ${sampleXhi} ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          frontBeam block ${sampleMiddleXlo} ${sampleMiddleXhi} ${beamEdgeYfront} ${sampleYhi} ${sampleZlow} ${zz} units box
+region          backBeam block ${sampleMiddleXlo} ${sampleMiddleXhi} ${sampleYlo} ${beamEdgeYback} ${sampleZlow} ${zz} units box
+
+#-------------------------   groups
+
+group           atoms region atoms
+group           spot region beam
+group           remainder subtract atoms spot
+group           belowBeam region belowBeam
+group           leftBeam region leftBeam
+group           rightBeam region rightBeam
+group           frontBeam region rightBeam
+group           backBeam region backBeam
+
+#-------------------------   potential
+
+pair_style      eam/fs 
+pair_coeff      * *         Ti1.eam.fs Ti
+mass            * 47.867
+
+#-------------------------   set temperature
+
+velocity        all create 300.0 12345
+fix             NPT all npt temp 300 300 0.01 x 0.0 0.0 0.1 y 0.0 0.0 0.1 z 0.0 0.0 0.1
+timestep        0.001
+run             0
+velocity        all scale 300.0
+unfix           NPT
+reset_timestep  0
+
+#-------------------------   thermostat
+
+fix             NVE all nve
+
+#-------------------------   TTM
+
+fix 		TTM1 atoms ttm/laser 699489 0.224 0.0136688989351759 0.8 50 100 100 50 infile ttm_file.in  outfile 1000 temp/boxTemp.lammps beamfile 350 beam_file.in Cfile Ce_titanium.txt Gfile Ge_titanium.txt
+
+#-------------------------   compute
+
+compute 	    ke all ke/atom
+compute     	spotTemp spot temp
+compute     	remainderTemp remainder temp
+compute         belowBeamtemp belowBeam temp
+compute         leftBeamtemp leftBeam temp
+compute         rightBeamtemp rightBeam temp
+compute         frontBeamtemp frontBeam temp
+compute         backBeamtemp backBeam temp
+
+fix         	temp all ave/atom 10 100 1000 c_ke
+
+#-------------------------   Visual output
+
+dump 		ovito all custom 1000 output_500grains.dmp id type xu yu zu f_temp
+
+#-------------------------   execution
+
+thermo_style 	custom step pe ke etotal c_spotTemp c_remainderTemp c_belowBeamtemp c_leftBeamtemp c_rightBeamtemp c_frontBeamtemp c_backBeamtemp
+thermo_modify   lost ignore flush yes
+thermo_modify   format float "%20.16g"
+thermo 		    1000
+timestep        0.001
+run             50000
+
+print           "------------------------------- All Done! --------------------------------------" 

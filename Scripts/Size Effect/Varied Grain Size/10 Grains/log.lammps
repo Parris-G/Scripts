@@ -1,0 +1,336 @@
+LAMMPS (2 Aug 2023)
+  using 1 OpenMP thread(s) per MPI task
+
+#-------------------------   initialise
+
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+
+#-------------------------   simulation box size
+
+variable        xx equal 500
+variable        yy equal 500
+variable        zz equal 200
+variable        spotDiameter equal 150
+variable        beamDepth equal 20
+variable        sampleCubeXsize equal 40
+variable        sampleCubeYsize equal 40
+variable        sampleCubeZsize equal 40
+
+#-------------------------   variable calculations
+
+variable        boxHeight equal ${zz}*5
+variable        boxHeight equal 200*5
+variable        beamX equal ${xx}/2
+variable        beamX equal 500/2
+variable        beamY equal ${yy}/2
+variable        beamY equal 500/2
+variable        beamBottom equal ${zz}-${beamDepth}
+variable        beamBottom equal 200-${beamDepth}
+variable        beamBottom equal 200-20
+variable        beamLowZ equal ${beamBottom}-50
+variable        beamLowZ equal 180-50
+
+variable        beamEdgeXleft equal ${beamX}-(${spotDiameter}/2)-50
+variable        beamEdgeXleft equal 250-(${spotDiameter}/2)-50
+variable        beamEdgeXleft equal 250-(150/2)-50
+variable        beamEdgeXright equal ${beamX}+(${spotDiameter}/2)+50
+variable        beamEdgeXright equal 250+(${spotDiameter}/2)+50
+variable        beamEdgeXright equal 250+(150/2)+50
+variable        beamEdgeYback equal ${beamY}-(${spotDiameter}/2)-50
+variable        beamEdgeYback equal 250-(${spotDiameter}/2)-50
+variable        beamEdgeYback equal 250-(150/2)-50
+variable        beamEdgeYfront equal ${beamY}+(${spotDiameter}/2)+50
+variable        beamEdgeYfront equal 250+(${spotDiameter}/2)+50
+variable        beamEdgeYfront equal 250+(150/2)+50
+
+variable        sampleMiddleXlo equal ${beamX}-(${sampleCubeXsize}/2)
+variable        sampleMiddleXlo equal 250-(${sampleCubeXsize}/2)
+variable        sampleMiddleXlo equal 250-(40/2)
+variable        sampleMiddleXhi equal ${beamX}+(${sampleCubeXsize}/2)
+variable        sampleMiddleXhi equal 250+(${sampleCubeXsize}/2)
+variable        sampleMiddleXhi equal 250+(40/2)
+variable        sampleMiddleYlo equal ${beamY}-(${sampleCubeYsize}/2)
+variable        sampleMiddleYlo equal 250-(${sampleCubeYsize}/2)
+variable        sampleMiddleYlo equal 250-(40/2)
+variable        sampleMiddleYhi equal ${beamY}+(${sampleCubeYsize}/2)
+variable        sampleMiddleYhi equal 250+(${sampleCubeYsize}/2)
+variable        sampleMiddleYhi equal 250+(40/2)
+variable        belowBeamZlo equal ${beamLowZ}-${sampleCubeZsize}
+variable        belowBeamZlo equal 130-${sampleCubeZsize}
+variable        belowBeamZlo equal 130-40
+
+variable        sampleXlo equal ${beamEdgeXleft}-${sampleCubeXsize}
+variable        sampleXlo equal 125-${sampleCubeXsize}
+variable        sampleXlo equal 125-40
+variable        sampleXhi equal ${beamEdgeXright}+${sampleCubeXsize}
+variable        sampleXhi equal 375+${sampleCubeXsize}
+variable        sampleXhi equal 375+40
+variable        sampleYlo equal ${beamEdgeYback}-${sampleCubeYsize}
+variable        sampleYlo equal 125-${sampleCubeYsize}
+variable        sampleYlo equal 125-40
+variable        sampleYhi equal ${beamEdgeYfront}+${sampleCubeYsize}
+variable        sampleYhi equal 375+${sampleCubeYsize}
+variable        sampleYhi equal 375+40
+variable        sampleZlow equal ${zz}-${sampleCubeYsize}
+variable        sampleZlow equal 200-${sampleCubeYsize}
+variable        sampleZlow equal 200-40
+
+#-------------------------   create atoms
+
+region          simBox block 0 ${xx} 0 ${yy} 0 ${boxHeight} units box
+region          simBox block 0 500 0 ${yy} 0 ${boxHeight} units box
+region          simBox block 0 500 0 500 0 ${boxHeight} units box
+region          simBox block 0 500 0 500 0 1000 units box
+create_box      1 simBox
+Created orthogonal box = (0 0 0) to (500 500 1000)
+  8 by 5 by 14 MPI processor grid
+read_data       substrate_10grains.atoms add append
+Reading data file ...
+  orthogonal box = (0 0 0) to (500 500 1000)
+  8 by 5 by 14 MPI processor grid
+  reading atoms ...
+  2753551 atoms
+  read_data CPU = 6.569 seconds
+
+#-------------------------   regions
+
+region          atoms block 0 ${xx} 0 ${yy} 0 ${zz} units box
+region          atoms block 0 500 0 ${yy} 0 ${zz} units box
+region          atoms block 0 500 0 500 0 ${zz} units box
+region          atoms block 0 500 0 500 0 200 units box
+region          beam cylinder z ${beamX} ${beamY} ${spotDiameter} ${beamBottom} ${zz} units box
+region          beam cylinder z 250 ${beamY} ${spotDiameter} ${beamBottom} ${zz} units box
+region          beam cylinder z 250 250 ${spotDiameter} ${beamBottom} ${zz} units box
+region          beam cylinder z 250 250 150 ${beamBottom} ${zz} units box
+region          beam cylinder z 250 250 150 180 ${zz} units box
+region          beam cylinder z 250 250 150 180 200 units box
+region          belowBeam block ${sampleMiddleXlo} ${sampleMiddleXhi} ${sampleMiddleYlo} ${sampleMiddleYhi} ${belowBeamZlo} ${beamLowZ} units box
+region          belowBeam block 230 ${sampleMiddleXhi} ${sampleMiddleYlo} ${sampleMiddleYhi} ${belowBeamZlo} ${beamLowZ} units box
+region          belowBeam block 230 270 ${sampleMiddleYlo} ${sampleMiddleYhi} ${belowBeamZlo} ${beamLowZ} units box
+region          belowBeam block 230 270 230 ${sampleMiddleYhi} ${belowBeamZlo} ${beamLowZ} units box
+region          belowBeam block 230 270 230 270 ${belowBeamZlo} ${beamLowZ} units box
+region          belowBeam block 230 270 230 270 90 ${beamLowZ} units box
+region          belowBeam block 230 270 230 270 90 130 units box
+region          leftBeam block ${sampleXlo} ${beamEdgeXleft} ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          leftBeam block 85 ${beamEdgeXleft} ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          leftBeam block 85 125 ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          leftBeam block 85 125 230 ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          leftBeam block 85 125 230 270 ${sampleZlow} ${zz} units box
+region          leftBeam block 85 125 230 270 160 ${zz} units box
+region          leftBeam block 85 125 230 270 160 200 units box
+region          rightBeam block ${beamEdgeXright} ${sampleXhi} ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          rightBeam block 375 ${sampleXhi} ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          rightBeam block 375 415 ${sampleMiddleYlo} ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          rightBeam block 375 415 230 ${sampleMiddleYhi} ${sampleZlow} ${zz} units box
+region          rightBeam block 375 415 230 270 ${sampleZlow} ${zz} units box
+region          rightBeam block 375 415 230 270 160 ${zz} units box
+region          rightBeam block 375 415 230 270 160 200 units box
+region          frontBeam block ${sampleMiddleXlo} ${sampleMiddleXhi} ${beamEdgeYfront} ${sampleYhi} ${sampleZlow} ${zz} units box
+region          frontBeam block 230 ${sampleMiddleXhi} ${beamEdgeYfront} ${sampleYhi} ${sampleZlow} ${zz} units box
+region          frontBeam block 230 270 ${beamEdgeYfront} ${sampleYhi} ${sampleZlow} ${zz} units box
+region          frontBeam block 230 270 375 ${sampleYhi} ${sampleZlow} ${zz} units box
+region          frontBeam block 230 270 375 415 ${sampleZlow} ${zz} units box
+region          frontBeam block 230 270 375 415 160 ${zz} units box
+region          frontBeam block 230 270 375 415 160 200 units box
+region          backBeam block ${sampleMiddleXlo} ${sampleMiddleXhi} ${sampleYlo} ${beamEdgeYback} ${sampleZlow} ${zz} units box
+region          backBeam block 230 ${sampleMiddleXhi} ${sampleYlo} ${beamEdgeYback} ${sampleZlow} ${zz} units box
+region          backBeam block 230 270 ${sampleYlo} ${beamEdgeYback} ${sampleZlow} ${zz} units box
+region          backBeam block 230 270 85 ${beamEdgeYback} ${sampleZlow} ${zz} units box
+region          backBeam block 230 270 85 125 ${sampleZlow} ${zz} units box
+region          backBeam block 230 270 85 125 160 ${zz} units box
+region          backBeam block 230 270 85 125 160 200 units box
+
+#-------------------------   groups
+
+group           atoms region atoms
+2753551 atoms in group atoms
+group           spot region beam
+76006 atoms in group spot
+group           remainder subtract atoms spot
+2677545 atoms in group remainder
+group           belowBeam region belowBeam
+3564 atoms in group belowBeam
+group           leftBeam region leftBeam
+3513 atoms in group leftBeam
+group           rightBeam region rightBeam
+3517 atoms in group rightBeam
+group           frontBeam region rightBeam
+3517 atoms in group frontBeam
+group           backBeam region backBeam
+3516 atoms in group backBeam
+
+#-------------------------   potential
+
+pair_style      eam/fs
+pair_coeff      * *         Ti1.eam.fs Ti
+mass            * 47.867
+
+#-------------------------   set temperature
+
+velocity        all create 300.0 12345
+fix             NPT all npt temp 300 300 0.01 x 0.0 0.0 0.1 y 0.0 0.0 0.1 z 0.0 0.0 0.1
+timestep        0.001
+run             0
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 8.9
+  ghost atom cutoff = 8.9
+  binsize = 4.45, bins = 113 113 225
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/fs, perpetual
+      attributes: half, newton on
+      pair build: half/bin/atomonly/newton
+      stencil: half/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 0.4822 | 4.026 | 17.29 Mbytes
+   Step          Temp          E_pair         E_mol          TotEng         Press          Volume    
+         0   300           -14488120       0             -14381343      -301.52775      2.5e+08      
+Loop time of 2.72927e-05 on 560 procs for 0 steps with 2753551 atoms
+
+81.1% CPU use with 560 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0          | 0          | 0          |   0.0 |  0.00
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0          | 0          | 0          |   0.0 |  0.00
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 2.729e-05  |            |       |100.00
+
+Nlocal:        4917.06 ave       25314 max           0 min
+Histogram: 440 0 0 0 0 0 0 40 0 80
+Nghost:        4079.87 ave       22525 max           0 min
+Histogram: 400 40 0 0 0 9 37 34 4 36
+Neighs:         376294 ave 1.99707e+06 max           0 min
+Histogram: 440 0 0 0 0 0 10 30 3 77
+
+Total # of neighbors = 2.107247e+08
+Ave neighs/atom = 76.528343
+Neighbor list builds = 0
+Dangerous builds = 0
+velocity        all scale 300.0
+unfix           NPT
+reset_timestep  0
+
+#-------------------------   thermostat
+
+fix             NVE all nve
+
+#-------------------------   TTM
+
+fix 		TTM1 atoms ttm/laser 699489 0.224 0.0136688989351759 0.8 50 100 100 50 infile ttm_file.in  outfile 1000 temp/boxTemp.lammps beamfile 350 beam_file.in Cfile Ce_titanium.txt Gfile Ge_titanium.txt
+
+#-------------------------   compute
+
+compute 	    ke all ke/atom
+compute     	spotTemp spot temp
+compute     	remainderTemp remainder temp
+compute         belowBeamtemp belowBeam temp
+compute         leftBeamtemp leftBeam temp
+compute         rightBeamtemp rightBeam temp
+compute         frontBeamtemp frontBeam temp
+compute         backBeamtemp backBeam temp
+
+fix         	temp all ave/atom 10 100 1000 c_ke
+
+#-------------------------   Visual output
+
+dump 		ovito all custom 1000 output_10grains.dmp id type xu yu zu f_temp
+
+#-------------------------   execution
+
+thermo_style 	custom step pe ke etotal c_spotTemp c_remainderTemp c_belowBeamtemp c_leftBeamtemp c_rightBeamtemp c_frontBeamtemp c_backBeamtemp
+thermo_modify   lost ignore flush yes
+thermo_modify   format float "%20.16g"
+thermo 		    1000
+timestep        0.001
+run             50000
+Per MPI rank memory allocation (min/avg/max) = 8.112 | 12 | 26.42 Mbytes
+   Step         PotEng         KinEng         TotEng       c_spotTemp   c_remainderTemp c_belowBeamtemp c_leftBeamtemp c_rightBeamtemp c_frontBeamtemp c_backBeamtemp
+         0    -14488120.09539288     106777.281679425   -14381342.81371346    298.9064030923849    300.0311549811929    298.5244697072417    295.2803302392394    296.9153741520107    296.9153741520107    302.7285510788253
+      1000    -14351204.97910489    394807.5815070492   -13956397.39759784    13995.34633747332    743.4604521318061    3491.589214881831    323.1715557710341    334.6242477175074    334.6242477175074    310.3333013875074
+      2000    -14275845.66557544    564901.3437840929   -13710944.32179135    21626.95876592884    1018.287647564902    4413.430793822401    456.3367296985286    507.4575080349895    507.4575080349895    590.1440027796418
+      3000    -14233985.78105879    551091.1824621017   -13682894.59859669    19038.24673953914    1051.868795095358    4431.026241188733    462.2837234956253    507.7380060192858    507.7380060192858    599.4500706390784
+      4000     -14213997.8714283    478383.7556209805   -13735614.11580732    15053.73296914211    954.8970316123099    3733.469735752197    477.1972493251842    459.4358876612138    459.4358876612138     556.413090332613
+      5000     -14211415.6012198    405610.5998067298   -13805805.00141307    11633.32843954022    841.7225001030868    3306.294566689079    494.0868624235792    516.5148124739165    516.5148124739165    533.3466458729542
+      6000    -14224073.03546037    349382.0771726206   -13874690.95828775    9103.617353964506    751.0677468623783    2884.951207521615    562.6862804037173    569.4369370589627    569.4369370589627    589.9245411228304
+      7000    -14244565.07053832     305773.771150437   -13938791.29938788    7110.847555204713    681.6354355609265    2577.239498279634    635.9598437045632    655.8346537769063    655.8346537769063    659.0951956687386
+      8000    -14267728.01769638     272825.194929114   -13994902.82276726    5655.542510208929    627.7461928188986     2337.49592517371    672.7136167602672    719.0121492632085    719.0121492632085    703.6307039563292
+      9000    -14287959.14874103    244140.9492700684   -14043818.19947096    4567.248761365548    575.7600386336574    2067.417276842667    687.5260057462943    773.0048235878947    773.0048235878947      748.35668341768
+     10000    -14305740.32665876    220392.4585760397   -14085347.86808272    3711.855820662741    531.4238189471448    1817.941742630829    738.5083223351143    770.2870229315711    770.2870229315711    804.8302158699088
+     11000    -14321475.43088381    201187.8737883977   -14120287.55709542     3062.29099098031    494.3738363196279    1571.458369418531    740.1099066470083     783.844276079973     783.844276079973    793.7130135864772
+     12000    -14335762.76686202    186040.9216737157    -14149721.8451883    2556.512119688762     464.966215753049    1408.837725898611    695.6273632987392    743.0866201314096    743.0866201314096    780.6772804835563
+     13000    -14348704.21680409    174392.3630639495   -14174311.85374014     2180.58133238341    441.9807665278281    1268.199161944989    698.8052865616299    727.6013102986727    727.6013102986727     737.271899089019
+     14000    -14360416.95100459    165110.9787742789   -14195305.97223031    1864.533647988681    424.1350432100078    1106.099487992157    656.0288635318017    690.1240839259626    690.1240839259626    718.5868545696612
+     15000    -14370490.75060751    157125.0793652828   -14213365.67124223    1605.340937472385    408.4185266954516    971.1459182956152    631.7673279532681    656.0617409709316    656.0617409709316    681.1965253173225
+     16000    -14379615.03179133    150583.6075630716   -14229031.42422825    1407.316077886547    395.1391375463257    909.9254027728348    586.2571721545642    606.8087413191013    606.8087413191013    623.5166523586762
+     17000    -14386940.60699561    144505.0560472978   -14242435.55094831    1227.435633990478    382.6822338068543    806.0816419928925    538.2644632296764    548.1078865140588    548.1078865140588    601.8036429188912
+     18000    -14393472.26332781    139476.6312462923   -14253995.63208152    1090.398517162825    372.0433493940279     693.489373209236    525.9288947090776    513.5293025023968    513.5293025023968     548.586787274972
+     19000    -14398975.38838184    135223.9422620168   -14263751.44611982    969.8289154377824    363.1783816606022    652.6774837074273     493.650371181036     504.192820243467     504.192820243467    523.3282261828632
+     20000    -14403916.07819091    131670.6690478396   -14272245.40914307    872.0089658099889    355.6884907003615    589.5345518140139    472.7230461485327    475.6860844020849    475.6860844020849    492.2019444522732
+     21000    -14408119.05057425    128543.9687031741   -14279575.08187107    789.1754952396086    349.0057065488057    546.4854145229718    447.9527249013072    444.5314752081146    444.5314752081146    471.4008269278823
+     22000    -14411619.98470406    125907.9141899533   -14285712.07051411     711.621809458653    343.5906928973354    512.3698948304494    421.9796714542599    425.4009535330192    425.4009535330192    442.0675650163095
+     23000     -14414471.6802814    123467.2430044373   -14291004.43727696    652.0139461866685    338.2307965337374    488.0030162611823     412.052007016311    410.0226941574152    410.0226941574152    419.4295725226812
+     24000    -14416926.36584167    121539.1178781116   -14295387.24796356    602.3097229827948    334.0706947245741     465.826334777836    395.4227886374753     394.579664661086     394.579664661086    401.8877809935178
+     25000     -14418911.3369247    119843.7875750909   -14299067.54934961    555.3174315525263     330.506235322837    435.0804348546246    378.6409664219031    378.9743430126866    378.9743430126866    385.0149493563847
+     26000    -14420726.95023108    118455.6657238038   -14302271.28450728    518.1596679250756    327.5502420099713    419.3898437412597    358.8789157536297    356.5969261863621    356.5969261863621    360.6114873399745
+     27000    -14422362.75721473     117386.045484622    -14304976.7117301    490.7777861318464    325.2370093027325    408.5881157902039    351.9217001228602    352.4727054117917    352.4727054117917    348.5199355055345
+     28000    -14423723.12905981    116360.5145155248   -14307362.61454428    461.8589590109408    323.0947933805137     393.331089789888    345.3068408891514    342.4163332831748    342.4163332831748    342.8397634754861
+     29000    -14425003.53314537    115542.8951901924   -14309460.63795518    436.2310039868596    321.4598900329858    381.9487807644742    343.6449200243505    339.3043632290029    339.3043632290029    339.0042212198946
+     30000    -14426031.74574728    114725.9767108134   -14311305.76903646    417.7514821055849    319.6240956148469    374.8631266839571    332.0080724551059    332.1194963025087    332.1194963025087    329.3476675067578
+     31000    -14427018.44073975    114119.8764380149   -14312898.56430173    404.0122403523886     318.262868797305    362.7325368294304    327.7750546227484    330.7914461742263    330.7914461742263    330.7375071726983
+     32000    -14427712.35579521    113502.5865687831   -14314209.76922643     390.537177375028    316.8618124221202    363.1188416817265      329.70304611094    321.4403757040791    321.4403757040791    324.4955535533645
+     33000    -14428459.34793468    113141.6569176487   -14315317.69101703    376.0603287506045    316.2299048170881    359.4645923115937    325.9394015732336    317.3440276272844    317.3440276272844    311.8219260879309
+     34000    -14428989.74628439    112763.3184921392   -14316226.42779225    369.3957502111981    315.3259375456509    358.5191553484786     324.072158691226    317.1139058558901    317.1139058558901    321.8941389096668
+     35000    -14429466.00241981    112390.1734319566   -14317075.82898785    359.5503395702861    314.5272670560798    356.1107192614375    317.3635160748365    317.7721533018244    317.7721533018244    316.2443792030977
+     36000    -14429989.08607673    112186.1130833732   -14317802.97299336    353.1762753430452    314.1186019486274    354.7401944582891    313.5305667588533    313.2338761753741    313.2338761753741    314.6944939051297
+     37000    -14430367.79071714    111919.6899299536   -14318448.10078719    346.2710636631097    313.5448266536728    346.7408295981228    310.0388117533874    306.0577842456997    306.0577842456997    316.1094739040665
+     38000     -14430694.8781902    111756.5551531486   -14318938.32303705    342.0890879861922    313.1921846448165    348.9485365912132    316.6923196735121    320.3214703627027    320.3214703627027    314.3709561255673
+     39000    -14430971.39490026    111643.3045030085   -14319328.09039725    338.0589456603262    312.9793649151173    345.6488069458995    308.5931024287027    312.8588621057847    312.8588621057847    310.6709398489494
+     40000    -14431310.44118563    111497.4987744801   -14319812.94241115    333.6349826069779    312.6836615045512    342.3474527211794    301.7170901523605    319.5693338221189    319.5693338221189    304.2959472665856
+     41000    -14431717.45469179    111327.3344405146   -14320390.12025127     332.129764374225    312.2347260378119    341.6175433458736    304.0540135839572    313.8851269392591    313.8851269392591     307.542531251164
+     42000    -14431999.87718842    111210.4309092951   -14320789.44627913    326.8354669323498     312.047236308942    349.1734645350812    303.6647367006704    308.0283338980423    308.0283338980423    305.1669620279842
+     43000    -14432169.91880749    111113.0150115543   -14321056.90379593    324.2651286649499    311.8387304460614    354.5247803894775    303.7892524280916    310.3795302539099    310.3795302539099    302.6552736434417
+     44000     -14432460.2177369    111062.4405730297   -14321397.77716387    323.4745171386118    311.7150460343887    358.7860108757399    302.1725843252566    308.6350229054258    308.6350229054258    308.9726413317152
+     45000     -14432601.6795904    110989.9085988434   -14321611.77099156    320.9154893435938    311.5781172428415    354.1359943498075    300.1972157000977    306.3814937648336    306.3814937648336     306.831343858848
+     46000    -14432932.51106199     110944.311890595    -14321988.1991714    320.3811482101343    311.4615406755473    356.9625020490668    310.0251239822784    301.1751608696089    301.1751608696089    305.3473893695239
+     47000    -14433100.88908879    110975.4475349079   -14322125.44155388    319.3043606288097    311.5820679449497    346.4649276222174    300.7157866921846    306.5887232176633    306.5887232176633    302.1313601323215
+     48000    -14433206.91598937    110849.5612716372   -14322357.35471773    318.6779151014822    311.2361219874807    354.9902054163974    304.8046300877743    308.8074731050281    308.8074731050281     301.799267165822
+     49000    -14433316.27122446    110786.9205594437   -14322529.35066501     319.345954140361    311.0361686175053    338.6534952917594    306.2197228074032    303.8436016684358    303.8436016684358    303.9043026866626
+     50000    -14433507.17172319    110856.4997414795   -14322650.67198171    318.0377448097389    311.2743415206471    346.3720668900726    302.4067322118379    306.8057779068542    306.8057779068542    297.7506538377355
+Loop time of 6489.6 on 560 procs for 50000 steps with 2753551 atoms
+
+Performance: 0.666 ns/day, 36.053 hours/ns, 7.705 timesteps/s, 21.215 Matom-step/s
+95.4% CPU use with 560 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 4.2398     | 1302.1     | 4031.6     |3967.7 | 20.06
+Neigh   | 0.040923   | 43.944     | 238.47     |1281.1 |  0.68
+Comm    | 7.6975     | 755.98     | 2321.1     |2805.5 | 11.65
+Output  | 6.3338     | 53.962     | 56.222     |  32.1 |  0.83
+Modify  | 1287.2     | 3923.6     | 6280.2     |3033.0 | 60.46
+Other   |            | 410        |            |       |  6.32
+
+Nlocal:        4917.06 ave       25302 max           0 min
+Histogram: 441 1 0 0 2 4 2 26 5 79
+Nghost:        4354.89 ave       22472 max           0 min
+Histogram: 397 5 40 0 2 4 26 8 40 38
+Neighs:         374644 ave 2.03162e+06 max           0 min
+Histogram: 442 0 0 1 2 5 19 10 3 78
+
+Total # of neighbors = 2.0980067e+08
+Ave neighs/atom = 76.192769
+Neighbor list builds = 3716
+Dangerous builds = 0
+
+print           "------------------------------- All Done! --------------------------------------" 
+------------------------------- All Done! --------------------------------------
+Total wall time: 1:48:18
